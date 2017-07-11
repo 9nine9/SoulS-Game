@@ -9,6 +9,10 @@ public class scoreManager : MonoBehaviour {
 	public int highRedSoul;
 	public int highYellowSoul;
 
+	public int[] minRedSoul;
+	public GameObject[] yellowSoul;
+	public bool isExplorePath;
+
 	public Text scoreDisplay;
 
 	void Error () {
@@ -24,14 +28,29 @@ public class scoreManager : MonoBehaviour {
 			highYellowSoul 	= PlayerPrefs.GetInt ("highYellowSoul");
 		} 
 		else ResetScore ();
+
+		isExplorePath = false;
 	}
 
 	void Update () {
 		ChangeBlueScore ();
+		SpawnYellowSoul ();
 	}
 
 	void ChangeBlueScore () {
 		if (scoreDisplay) scoreDisplay.text = blueSoulScore.ToString ();
+	}
+
+	void SpawnYellowSoul () {
+		if (yellowSoulScore < minRedSoul.Length) {
+			int step = yellowSoulScore;
+			if (redSoulScore >= minRedSoul [step] && isExplorePath) {
+				if (yellowSoul [step]) {
+					yellowSoul [step].SetActive (true);
+				}
+				else Debug.LogError ("yellowSoul (" + step + ") is null (scoreManager)");
+			}
+		}
 	}
 
 	public void SaveScore () {
@@ -51,4 +70,3 @@ public class scoreManager : MonoBehaviour {
 		PlayerPrefs.Save ();
 	}
 }
-

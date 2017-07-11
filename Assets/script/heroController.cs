@@ -1,8 +1,10 @@
 ﻿using UnityEngine;
+using System.Collections;
 
 public class heroController : MonoBehaviour {
 	public float speedStart;		//kecepatan hero
-	public float EffectDuration;	//durasi terkena red soul
+	public float redDuration;		//durasi terkena red soul
+	public float yellowDuration;	//durasi terkena yellow soul
 	public float lightTimeMax;		//max durasi light
 	public float lightTime;			//durasi light yang tersisa
 	public float lightTimeAdd;		//durasi tambahan light
@@ -10,14 +12,12 @@ public class heroController : MonoBehaviour {
 	public Light heroLight;
 	public RectTransform lightBar;
 	public GameObject map;
-	public bool isGameOver;
+	public bool isMove, isGameOver, isYellowSoul, isRedSoul;
 	tileMap node;
 	scoreManager score;
 	float rotate, speed, effect;
-	bool isRedSoul;
 	Vector2 world;
 	Vector2 direct ;
-	bool isMove;
 	Animator anim;
 
 	void Error () {
@@ -42,6 +42,8 @@ public class heroController : MonoBehaviour {
 
 		isGameOver 	= false;
 		isMove 		= false;
+		isRedSoul 	= false;
+		isYellowSoul= false;
 		world.x 	= Screen.width / 2;
 		world.y 	= Screen.height / 2;
 		speed 		= speedStart;
@@ -60,10 +62,6 @@ public class heroController : MonoBehaviour {
 		}
 
 		LightStatus ();
-
-		if (isRedSoul) {
-			RedSoulEffect ();
-		}
 	}
 
 	//pergerakan hero dengan mengklik/touch layar
@@ -108,7 +106,7 @@ public class heroController : MonoBehaviour {
 		}
 
 		transform.eulerAngles = new Vector3(0, 0, rotate);
-		if (isMove) {
+		if (isMove && !isYellowSoul) {
 			anim.SetBool ("isMove", true);
 			transform.Translate (Vector2.up * speed * Time.deltaTime);
 		}
@@ -129,10 +127,14 @@ public class heroController : MonoBehaviour {
 			node.hero.y = y;
 		}
 
-		//jika current node nya hero belum dilalui, hapus node tersebut dari list nodeOpen 
-		if (node.nodeOpen.Contains (node.hero)) {
-			node.nodeOpen.Remove (node.hero);
-		}
+
+		if (node.nodeOpen.Count > 0) {
+			//jika current node nya hero belum dilalui, hapus node tersebut dari list nodeOpen 
+			if (node.nodeOpen.Contains (node.hero)) {
+				node.nodeOpen.Remove (node.hero);
+			}
+		} 
+		else score.isExplorePath = true;;
 	}
 
 	//status light hero
@@ -150,17 +152,6 @@ public class heroController : MonoBehaviour {
 		}
 	}
 		
-	void RedSoulEffect () {
-		if (effect > 0) {
-			effect 		-= Time.deltaTime;
-		}
-		else {
-			speed 			= speedStart;
-			heroLight.color	= Color.white;
-			isRedSoul 		= false;
-		}
-	}
-
 	void GameOver () {
 		Time.timeScale = 0; //pause
 		if (heroLight) {
@@ -203,18 +194,51 @@ public class heroController : MonoBehaviour {
 				node.Explode (other.gameObject.transform.position, new Color (255, 0, 0)); //buat partikel red
 				score.redSoulScore++;		//update score red soul
 			}
+	
+			Destroy (other.gameObject);
+			StartCoroutine (RedEffect (redDuration));
+		}
 
-			if (heroLight) {
-				heroLight.color = new Color (1, 0.5f, 0.5f);
+		//jika menabrak yellow soul
+		if (other.gameObject.tag == "YellowSoul") {
+			if (node && score) {
+				node.Explode (other.gameObject.transform.position, new Color (255, 255, 0)); //buat partikel yellow
+				score.yellowSoulScore++;		//update score yellow soul
 			}
 
 			Destroy (other.gameObject);
-			effect 		= EffectDuration;
-			speed  		= speedStart / 2;
-			lightTime 	/= 2;
-			isRedSoul 	= true;
+			StartCoroutine (YellowEffect (yellowDuration, 5));
 		}
 
 	}
 
+	IEnumerator YellowEffect(float waitTime, int loop)
+	{
+		isYellowSoul	  = true;
+		while (loop > 0) {
+			heroLight.enabled = false;
+
+			yield return new WaitForSeconds (waitTime);
+			heroLight.enabled = true;
+			loop--;
+			yield return new WaitForSeconds (waitTime);
+		}
+		isYellowSoul	  = false;
+
+	}
+
+	IEnumerator RedEffect(float waitTime)
+	{
+		if (heroLight) {
+			heroLight.color = new Color (1, 0.5f, 0.5f);
+		}
+		isRedSoul 	= true;
+		speed  		= speedStart / 2;
+		lightTime 	/= 2;
+
+		yield return new WaitForSeconds (waitTime);
+		speed 			= speedStart;
+		heroLight.color	= Color.white;
+		isRedSoul 		= false;
+	}
 }
