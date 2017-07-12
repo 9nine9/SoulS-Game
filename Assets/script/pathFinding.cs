@@ -1,15 +1,16 @@
 ﻿using UnityEngine;
 using System.Collections.Generic;
-using System.Collections;
 
 public class pathFinding : MonoBehaviour {
 	public tileMap node;
-	public List<tileMap.Node> path;
-	public List<tileMap.Node> close;
-	public int speed;
+	public List<tileMap.Node> open, close, path;
+
+	public float timeStart;
+	public float timeGetPath;
 	float rotate;
-	public GameObject p;
-	public int o = 0;
+
+	enemyController enemy;
+	Animator anim;
 
 	void Error () {
 		//error
@@ -18,15 +19,26 @@ public class pathFinding : MonoBehaviour {
 
 	void Start () {
 		Error ();
+
+		enemy = gameObject.GetComponent<enemyController> ();
+		if (!enemy) Debug.LogError ("enemy (enemyController) is null (pathFinding)");
+
+		anim = gameObject.GetComponent<Animator> ();
+		if (!anim) Debug.LogError ("anim is null (pathFinding)");
+
 		rotate 	= transform.eulerAngles.z;
+
 		path 	= new List<tileMap.Node> ();
+		open 	= new List<tileMap.Node> ();
+		close 	= new List<tileMap.Node> ();
+
+		InvokeRepeating ("UpdateTarget", timeStart, timeGetPath);
 	}
 
 	void Update () {
-		//RunPath ();
-
+		RunPath ();
 	}
-		
+
 	void RotateSelf (tileMap.Node A, tileMap.Node B) {
 		if (B.x > A.x) { //right
 			rotate = 270f;
@@ -44,216 +56,199 @@ public class pathFinding : MonoBehaviour {
 		transform.eulerAngles = new Vector3(0, 0, rotate);
 	}
 
-	void GetPath (tileMap.Node A, tileMap.Node B) {
-	
-	}
+	void RunPath(){
+		int current = path.Count - 1;
+		if (current >= 0) {
+			RotateSelf (node.enemy, path [current]);
 
-	/** void RunPath(){
-		if (path.Count > 0) {
-			float x = node.map [path [0].x, path [0].y].position.x;
-			float y = node.map [path [0].x, path [0].y].position.y;
+			float x = node.map [path [current].x, path [current].y].position.x;
+			float y = node.map [path [current].x, path [current].y].position.y;
 
 			Vector2 currentPosition = transform.position;
 			Vector2 targetPosition = new Vector2 (x, y);
 
 			if (Vector2.Distance (currentPosition, targetPosition) > 0) {
-				transform.position = Vector2.MoveTowards (currentPosition, targetPosition, speed * Time.deltaTime);
+				if (enemy) {
+					transform.position = Vector2.MoveTowards (currentPosition, targetPosition, enemy.speed * Time.deltaTime);
+				}
 			}
 			else {
-				path.RemoveAt (0);
-				//print(path[0].x+","+path[0].y); //path target
-
-				if (path.Count > 0) {
-					RotateSelf (node.enemy, path [0]);
-				}
+				path.RemoveAt (current);
 			}
-		} 
-		else {
-			if (node) {
-				close = new List<tileMap.Node> ();
-				print ("(" + node.enemy.x + "," + node.enemy.y + ") - (" + node.hero.x + "," + node.hero.y + ")");
-				GetPath (node.enemy, node.hero);
-				//print (close.Count);
-				/*for (int a = 0; a < node.mapWidth; a++) {
-					for (int b = 0; b < node.mapHeight; b++) {
-						if (!node.map [a, b].isOpen || node.map [a, b].cost != 9999) {
-							GameObject c = Instantiate (p, new Vector2 (node.map [a, b].position.x, node.map [a, b].position.y), Quaternion.identity);
-							Destroy (c, 3);
-						}
-					}
-				}
-				for (int i = 0; i < close.Count; i++) {
-					//GameObject a = Instantiate (p, new Vector2 (node.map [close [i].x, close [i].y].position.x, node.map [close [i].x, close [i].y].position.y), Quaternion.identity);
-					//Destroy (a, 3);
-					node.map [close [i].x, close [i].y].cost = 9999;
-					node.map [close [i].x, close [i].y].isOpen = true;
-				}
-
-			} 
-
-		}
-	} **/
-
-
-	/** bool GetCost (tileMap.Node A, tileMap.Node B, int step, string next){
-		int hor = 0, ver = 0;
-
-		switch (next){
-			case "up":
-				ver = 1;
-				break;
-			case "down":
-				ver = -1;
-				break;
-			case "right":
-				hor = 1;
-				break;
-			case "left":
-				hor = -1;
-				break;
-			default:
-				break;
-		}
-			
-		int distance = Mathf.Abs ((B.x - (A.x + hor))) + Mathf.Abs ((B.y - (A.y + ver)));
-		int cost 	 = step + distance;
-
-		if (cost <= node.map [(A.x + hor), (A.y + ver)].cost) {
-			node.map [(A.x + hor), (A.y + ver)].cost = cost;
-			return true;
-		}
-		else {
-			node.map [(A.x + hor), (A.y + ver)].isOpen = true;
-			return false;
 		}
 	}
 
 
+	void GetCost (tileMap.Node A, tileMap.Node B, int step) {
+
+		int distance = Mathf.Abs (B.x - A.x) + Mathf.Abs (B.y - A.y);
+		int cost 	 = step + distance;
+
+		if (cost <= node.map [A.x, A.y].cost) {
+			node.map [A.x, A.y].cost = cost;
+			node.map [A.x, A.y].step = step;
+		}
+	}
 
 	void GetPath (tileMap.Node A, tileMap.Node B) {
-		close.Add (A);
-		path.Add (A);
-		int currentNode = path.Count - 1;
-		GetCost (path [currentNode], B, 0, "");
-	
-		tileMap.Node next;
-		next.x = path [currentNode].x;
-		next.y = path [currentNode].y;
-		int right, left, up, down, x, y, cost, min;
-		bool block;
+		ResetNode ();
 
-		for (int step = 1;;step++) {
-			min = 9999;
-			node.map [path [currentNode].x, path [currentNode].y].isOpen = false;
+		int cost, up, down, right, left, x, y, step = 0;
+		bool check;
+		tileMap.Node current, child;
 
-			block 	= true;
-			up 		= path [currentNode].y + 1;
-			down	= path [currentNode].y - 1;
-			right 	= path [currentNode].x + 1;
-			left 	= path [currentNode].x - 1;
-			x 		= path [currentNode].x;
-			y 		= path [currentNode].y;
+		open.Add (A);
+		current = open [0];
+		GetCost (current, B, step);
 
-			//update cost di masing-masing tile cabang (child) dari tile currentNode(parent)
-			if (up < node.mapHeight && node.map [x, up].isOpen) { //up path
-				
-				if (GetCost (path [currentNode], B, step, "up")) {
-					cost = node.map [x, up].cost;
-					if (cost < min) {
-						min = cost;
-						next.x	= x;
-						next.y  = up;
-						block 	= false;
-					}
-					close.Add (next);
-				} 
+		for(;;){
+			
+			if (open.Contains (B)) { //path ditemukan
+				print("ketemu");
+				path.Add (B);
+
+				while (!path.Contains (A)) {
+					path.Add (current);
+					current = node.map [current.x, current.y].parent;
+				}
+
+				path.Remove (A);
+
+				if (anim) {
+					anim.SetBool ("isMove", true);
+				}
+				break;
+			}
+			else if (open.Count <= 0) { //path tidak ditemukan
+				print("not");
+				if (anim) {
+					anim.SetBool ("isMove", false);
+				}
+				break;
 			}
 
-			if (down >= 0 && node.map [x, down].isOpen) {  //bottom path
+			cost 	= 9999;
+			for (int i = 0; i < open.Count; i++) {
+				if (node.map [open [i].x, open [i].y].cost < cost) {
+					cost    = node.map [open [i].x, open [i].y].cost;
+					current = open [i];
+				}
+			}
 
-				if (GetCost (path [currentNode], B, step, "down")) {
-					cost = node.map [x, down].cost;
-					if (cost < min) {
-						min = cost;
-						next.x	= x;
-						next.y  = down;
-						block 	= false;
+			open.Remove (current);
+			close.Add (current);
+
+			up 		= current.y + 1;
+			down	= current.y - 1;
+			right 	= current.x + 1;
+			left 	= current.x - 1;
+			x		= current.x;
+			y 		= current.y;
+
+			if (up < node.mapHeight && node.map [x, up].isOpen) { //up path
+				child.x = x;
+				child.y = up;
+				check 	= false;
+				if (!close.Contains (child)) {
+					if (!open.Contains (child)) {
+						check = true;
+						open.Add (child);
 					}
-					close.Add (next);
+					else if (node.map [x, y].step < node.map [x, up].step) {
+						check = true;
+					}
+
+					if (check) {
+						node.map [x, up].parent = current;
+						step = node.map [x, y].step + 1;
+						GetCost (child, B, step);
+					}
+				}
+			}
+
+			if (down >= 0 && node.map [x, down].isOpen) {  //bottom paths
+				child.x = x;
+				child.y = down;
+				check 	= false;
+				if (!close.Contains (child)) {
+					if (!open.Contains (child)) {
+						check = true;
+						open.Add (child);
+					}
+					else if (node.map [x, y].step < node.map [x, down].step) {
+						check = true;
+					}
+
+					if (check) {
+						node.map [x, down].parent = current;
+						step = node.map [x, y].step + 1;
+						GetCost (child, B, step);
+					}
 				}
 			}
 
 			if (right < node.mapWidth && node.map [right, y].isOpen){ //right path
-				
-				if (GetCost (path [currentNode], B, step, "right")) {
-					cost = node.map [right, y].cost;
-					if (cost < min) {
-						min = cost;
-						next.x	= right;
-						next.y	= y;
-						block	= false;
+				child.x = right;
+				child.y = y;
+				check 	= false;
+				if (!close.Contains (child)) {
+					if (!open.Contains (child)) {
+						check = true;
+						open.Add (child);
 					}
-					close.Add (next);
+					else if (node.map [x, y].step < node.map [right, y].step) {
+						check = true;
+					}
+
+					if (check) {
+						node.map [right, y].parent = current;
+						step = node.map [x, y].step + 1;
+						GetCost (child, B, step);
+					}
 				}
 			}
 
 			if (left >= 0 && node.map [left, y].isOpen) { //left path
-				
-				if (GetCost (path [currentNode], B, step, "left")) {
-					cost = node.map [left, y].cost;
-					if (cost < min) {
-						min = cost;
-						next.x 	= left;
-						next.y	= y;
-						block 	= false;
+				child.x = left;
+				child.y = y;
+				check 	= false;
+				if (!close.Contains (child)) {
+					if (!open.Contains (child)) {
+						check = true;
+						open.Add (child);
 					}
-					close.Add (next);
+					else if (node.map [x, y].step < node.map [left, y].step) {
+						check = true;
+					}
+
+					if (check) {
+						node.map [left, y].parent = current;
+						step = node.map [x, y].step + 1;
+						GetCost (child, B, step);
+					}
 				}
 			}
 
-			if (block) {
-				step -= 2;
-				path.RemoveAt (currentNode);
-				currentNode--;
-				if (currentNode >= 0 && o == 1) {
-					GameObject a = Instantiate (p, new Vector2 (node.map [path [currentNode].x, path [currentNode].y].position.x, node.map [path [currentNode].x, path [currentNode].y].position.y), Quaternion.identity);
-					Destroy (a, step);
-					//StartCoroutine (inc(path[currentNode], 1));
-					//print (step + "back" + path [currentNode].x + "," + path [currentNode].y + "=" + node.map [path [currentNode].x, path [currentNode].y].cost);
-				}
-			} else {
-				if (o == 1) {
-					GameObject a = Instantiate (p, new Vector2 (node.map [next.x, next.y].position.x, node.map [next.x, next.y].position.y), Quaternion.identity);
-					Destroy (a, step);
-					//StartCoroutine (inc(next, 1));
-					//print (step + "next" + next.x + "," + next.y + "=" + node.map [next.x, next.y].cost);
-				}
-				//step++;
-				path.Add (next);
-				currentNode++;
-			}
-
-			if (currentNode < 0)
-				break;
-			else {
-				if (path [currentNode].x == B.x && path [currentNode].y == B.y) {
-					print ("getpath");
-					break;
-					//print (B.xPos+"," + B.yPos + " == "+path [currentNode].xPos +","+path [currentNode].yPos + " = "+map.map[path [currentNode].xPos, path [currentNode].yPos].cost);
-				}
-			}
 
 		}
+	}
 
-	} **/
+	void ResetNode () {
+		for (int i = 0; i < open.Count; i++) {
+			node.map [open [i].x, open [i].y].step = 9999;
+			node.map [open [i].x, open [i].y].cost = 9999;
+		}
+		for (int i = 0; i < close.Count; i++) {
+			node.map [close [i].x, close [i].y].step = 9999;
+			node.map [close [i].x, close [i].y].cost = 9999;
+		}
 
-	IEnumerator inc(tileMap.Node J, float delay){
-		yield return new WaitForSeconds (delay);
-		Vector2 A;
-		print ("a");
-		A.x = node.map [J.x, J.y].position.x;
-		A.y = node.map [J.x, J.y].position.y;
-		GameObject a = Instantiate (p, A, Quaternion.identity);
-		Destroy (a, 3);
+		open 	= new List<tileMap.Node> ();
+		close 	= new List<tileMap.Node> ();
+		path 	= new List<tileMap.Node> ();
+	}
+
+	void UpdateTarget () {
+		GetPath (node.enemy, node.hero);
 	}
 }

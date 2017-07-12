@@ -1,23 +1,30 @@
 ﻿using UnityEngine;
-using System.Collections;
 
 public class heroController : MonoBehaviour {
 	public float speedStart;		//kecepatan hero
+	public float speed;
+	public bool isMove;
+	float rotate;
+
+	public int enemyNoticeDistance;
+
 	public float redDuration;		//durasi terkena red soul
 	public float yellowDuration;	//durasi terkena yellow soul
+
 	public float lightTimeMax;		//max durasi light
 	public float lightTime;			//durasi light yang tersisa
 	public float lightTimeAdd;		//durasi tambahan light
-	public float durationLightOff;	//durasi light meredup
+
 	public Light heroLight;
 	public RectTransform lightBar;
 	public GameObject map;
-	public bool isMove, isGameOver, isYellowSoul, isRedSoul;
+
 	tileMap node;
+	spawnSoul spawn;
 	scoreManager score;
-	float rotate, speed, effect;
+	gameOver status;
 	Vector2 world;
-	Vector2 direct ;
+	Vector2 direct;
 	Animator anim;
 
 	void Error () {
@@ -32,36 +39,35 @@ public class heroController : MonoBehaviour {
 		if (map){
 			node 	= map.GetComponent<tileMap> ();
 			score 	= map.GetComponent<scoreManager> ();
+			spawn 	= map.GetComponent<spawnSoul> ();
+			status	= map.GetComponent<gameOver> ();
 
 			if (!node) Debug.LogError ("node (map) is null (heroController)");
 			if (!score) Debug.LogError ("score (map) is null (heroController)");
+			if (!spawn) Debug.LogError ("spawn (map) is null (heroController)");
+			if (!status) Debug.LogError ("status (map) is null (heroController)");
 		}
 
 		anim = gameObject.GetComponent<Animator> ();
 		if (!anim) Debug.LogError ("anim (Animator) is null (heroController)");
 
-		isGameOver 	= false;
 		isMove 		= false;
-		isRedSoul 	= false;
-		isYellowSoul= false;
 		world.x 	= Screen.width / 2;
 		world.y 	= Screen.height / 2;
 		speed 		= speedStart;
 		rotate 		= transform.eulerAngles.z;
+	
 	}
 
 	void Update () {
-		if (isGameOver) {
-			GameOver ();
-		}
-
 		Movement ();
 
 		if (node) {
 			ChangeNode ();
+			EnemyNotice ();
 		}
 
-		LightStatus ();
+		LightStatus ();	
 	}
 
 	//pergerakan hero dengan mengklik/touch layar
@@ -106,7 +112,7 @@ public class heroController : MonoBehaviour {
 		}
 
 		transform.eulerAngles = new Vector3(0, 0, rotate);
-		if (isMove && !isYellowSoul) {
+		if (isMove && !spawn.isYellowSoul) {
 			anim.SetBool ("isMove", true);
 			transform.Translate (Vector2.up * speed * Time.deltaTime);
 		}
@@ -126,22 +132,21 @@ public class heroController : MonoBehaviour {
 			node.hero.x = x;
 			node.hero.y = y;
 		}
-
-
+			
 		if (node.nodeOpen.Count > 0) {
 			//jika current node nya hero belum dilalui, hapus node tersebut dari list nodeOpen 
 			if (node.nodeOpen.Contains (node.hero)) {
 				node.nodeOpen.Remove (node.hero);
 			}
 		} 
-		else score.isExplorePath = true;;
+		else spawn.isExplorePath = true;
 	}
 
 	//status light hero
 	void LightStatus () {
 		//jika waktu light habis  maka game over
 		if (lightTime <= 0) {
-			isGameOver = true;
+			status.isGameOver = true;
 		}
 		else {
 			if (lightBar) {
@@ -151,19 +156,15 @@ public class heroController : MonoBehaviour {
 			}
 		}
 	}
-		
-	void GameOver () {
-		Time.timeScale = 0; //pause
-		if (heroLight) {
-			heroLight.intensity -= durationLightOff + Time.deltaTime;
-			if (heroLight.intensity <= 0) {
-				print ("gameover");
-				score.SaveScore ();
-			}
+
+	void EnemyNotice () {
+		int distance = Mathf.Abs (node.hero.x - node.enemy.x) + Mathf.Abs (node.hero.y - node.enemy.y);
+		if (distance < enemyNoticeDistance) {
+			print ("enemy Closed");
 		}
 	}
 
-	void OnCollisionEnter2D (Collision2D other){
+	void OnCollisionEnter2D (Collision2D other) {
 		//jika menabrak musuh
 		if (other.gameObject.tag == "Enemy") {
 			lightTime  = 0;
@@ -173,12 +174,12 @@ public class heroController : MonoBehaviour {
 		//jika menabrak blue soul
 		if (other.gameObject.tag == "BlueSoul") {
 			if (node && score) {
-				node.Explode (other.gameObject.transform.position, new Color (0, 255, 255)); //buat partikel blue
+				spawn.Explode (other.gameObject.transform.position, new Color (0, 255, 255)); //buat partikel blue
 				score.blueSoulScore++;		//update score blue soul
 			}
 
 			Destroy (other.gameObject);
-			node.blueSoulCount--;			//update jumlah blue soul
+			spawn.blueSoulCount--;			//update jumlah blue soul
 			node.nodeSpawn.Add (node.hero);	//masukkan node blue soul ke list nodeSpawn
 
 			//tambah durasi light yang terisa
@@ -191,54 +192,25 @@ public class heroController : MonoBehaviour {
 		//jika menabrak red soul
 		if (other.gameObject.tag == "RedSoul") {
 			if (node && score) {
-				node.Explode (other.gameObject.transform.position, new Color (255, 0, 0)); //buat partikel red
+				spawn.Explode (other.gameObject.transform.position, new Color (255, 0, 0)); //buat partikel red
 				score.redSoulScore++;		//update score red soul
 			}
 	
 			Destroy (other.gameObject);
-			StartCoroutine (RedEffect (redDuration));
+			StartCoroutine (spawn.RedEffect (redDuration));
 		}
 
 		//jika menabrak yellow soul
 		if (other.gameObject.tag == "YellowSoul") {
 			if (node && score) {
-				node.Explode (other.gameObject.transform.position, new Color (255, 255, 0)); //buat partikel yellow
+				spawn.Explode (other.gameObject.transform.position, new Color (255, 255, 0)); //buat partikel yellow
 				score.yellowSoulScore++;		//update score yellow soul
 			}
 
 			Destroy (other.gameObject);
-			StartCoroutine (YellowEffect (yellowDuration, 5));
+			StartCoroutine (spawn.YellowEffect (yellowDuration, 5));
 		}
 
 	}
 
-	IEnumerator YellowEffect(float waitTime, int loop)
-	{
-		isYellowSoul	  = true;
-		while (loop > 0) {
-			heroLight.enabled = false;
-
-			yield return new WaitForSeconds (waitTime);
-			heroLight.enabled = true;
-			loop--;
-			yield return new WaitForSeconds (waitTime);
-		}
-		isYellowSoul	  = false;
-
-	}
-
-	IEnumerator RedEffect(float waitTime)
-	{
-		if (heroLight) {
-			heroLight.color = new Color (1, 0.5f, 0.5f);
-		}
-		isRedSoul 	= true;
-		speed  		= speedStart / 2;
-		lightTime 	/= 2;
-
-		yield return new WaitForSeconds (waitTime);
-		speed 			= speedStart;
-		heroLight.color	= Color.white;
-		isRedSoul 		= false;
-	}
 }
