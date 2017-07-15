@@ -1,5 +1,4 @@
 ﻿using UnityEngine;
-using UnityEngine.UI;
 
 public class scoreManager : MonoBehaviour {
 	public int blueSoulScore;		//score blue soul
@@ -9,30 +8,13 @@ public class scoreManager : MonoBehaviour {
 	public int highRedSoul;
 	public int highYellowSoul;
 
-	public Text scoreDisplay;
-
-	void Error () {
-		//error
-		if (!scoreDisplay) Debug.LogError ("scoreDisplay is null (scoreManager)");
-	}
-
-	void Start 	() {
-		Error ();
+	void Awake () {
 		if (PlayerPrefs.HasKey ("highBlueSoul") || PlayerPrefs.HasKey ("highRedSoul") || PlayerPrefs.HasKey ("highYellowSoul")) {
 			highBlueSoul 	= PlayerPrefs.GetInt ("highBlueSoul");
 			highRedSoul 	= PlayerPrefs.GetInt ("highRedSoul");
 			highYellowSoul 	= PlayerPrefs.GetInt ("highYellowSoul");
 		} 
 		else ResetScore ();
-	}
-
-	void Update () {
-		ChangeBlueScore ();
-	}
-
-	void ChangeBlueScore () {
-		if (scoreDisplay)
-			scoreDisplay.text = blueSoulScore.ToString ();
 	}
 
 	public void SaveScore () {

@@ -1,10 +1,12 @@
 ﻿using UnityEngine;
+using UnityEngine.UI;
 
 public class heroController : MonoBehaviour {
 	public float speedStart;		//kecepatan hero
 	public float speed;
 	public bool isMove;
 	float rotate;
+	float swipeDistance = 50f;
 
 	public int enemyNoticeDistance;
 
@@ -18,6 +20,7 @@ public class heroController : MonoBehaviour {
 	public Light heroLight;
 	public RectTransform lightBar;
 	public GameObject map;
+	public Text scoreDisplay;
 
 	tileMap node;
 	spawnSoul spawn;
@@ -27,11 +30,15 @@ public class heroController : MonoBehaviour {
 	Vector2 direct;
 	Animator anim;
 
+	Vector2 firstFinger;
+	Vector2 lastFinger;
+
 	void Error () {
 		//error
 		if (!map) Debug.LogError ("map is null (heroController)");
 		if (!lightBar) Debug.LogError ("lightBar is null (heroController)");
 		if (!heroLight) Debug.LogError ("heroLight is null (heroController)");
+		if (!scoreDisplay) Debug.LogError ("scoreDisplay is null (heroController)");
 	}
 
 	void Start (){
@@ -48,6 +55,10 @@ public class heroController : MonoBehaviour {
 			if (!status) Debug.LogError ("status (map) is null (heroController)");
 		}
 
+		if (scoreDisplay) {
+			scoreDisplay.text = "0";
+		}
+
 		anim = gameObject.GetComponent<Animator> ();
 		if (!anim) Debug.LogError ("anim (Animator) is null (heroController)");
 
@@ -56,7 +67,20 @@ public class heroController : MonoBehaviour {
 		world.y 	= Screen.height / 2;
 		speed 		= speedStart;
 		rotate 		= transform.eulerAngles.z;
-	
+
+		if (rotate == 0f) {
+			direct = Vector2.up;
+		}
+		else if (rotate == 90f) {
+			direct = Vector2.left;
+		}
+		else if (rotate == 180f) {
+			direct = Vector2.down;
+		}
+		else if (rotate == 270f) {
+			direct = Vector2.right;
+		}
+
 	}
 
 	void Update () {
@@ -72,7 +96,8 @@ public class heroController : MonoBehaviour {
 
 	//pergerakan hero dengan mengklik/touch layar
 	void Movement () {
-		
+
+		//click control
 		if (Input.GetMouseButtonDown (0)) {
 			Vector2 pos;
 			Vector2 click = Input.mousePosition;
@@ -102,6 +127,34 @@ public class heroController : MonoBehaviour {
 			}
 		}
 
+		//swipe control
+		/*if (Input.touchCount > 0) {
+			foreach (Touch touch in Input.touches) {
+				if (touch.phase == TouchPhase.Began) {
+					firstFinger = touch.position;
+					lastFinger = touch.position;
+				}
+				if (touch.phase == TouchPhase.Moved) {
+					lastFinger = touch.position;
+				}
+				if (touch.phase == TouchPhase.Ended) {
+					if ((firstFinger.x - lastFinger.x) > swipeDistance) { //left swipe
+						rotate = 90f;
+						direct = Vector2.left;
+					} else if ((firstFinger.x - lastFinger.x) < (-1 * swipeDistance)) { //right swipe
+						rotate = 270f;
+						direct = Vector2.right;
+					} else if ((firstFinger.y - lastFinger.y) > swipeDistance) { //down swipe
+						rotate = 180f;
+						direct = Vector2.down;
+					} else if ((firstFinger.y - lastFinger.y) < (-1 * swipeDistance)) { //up swipe
+						rotate = 0f;
+						direct = Vector2.up;
+					}
+				}
+			}
+		}
+*/
 		RaycastHit2D[] hits = Physics2D.RaycastAll (transform.position, direct, (node.tileSize / 2) + 0.1f);
 		for (int i = 0; i < hits.Length; i++) {
 			RaycastHit2D hit = hits [i];
@@ -173,9 +226,10 @@ public class heroController : MonoBehaviour {
 
 		//jika menabrak blue soul
 		if (other.gameObject.tag == "BlueSoul") {
-			if (node && score) {
+			if (node && score && scoreDisplay) {
 				spawn.Explode (other.gameObject.transform.position, new Color (0, 255, 255)); //buat partikel blue
 				score.blueSoulScore++;		//update score blue soul
+				scoreDisplay.text = score.blueSoulScore.ToString();
 			}
 
 			Destroy (other.gameObject);

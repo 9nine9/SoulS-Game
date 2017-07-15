@@ -6,6 +6,7 @@ public class gameOver : MonoBehaviour {
 	public Light heroLight;
 	public Light enemyLight;
 	public float durationLightOff;	//durasi light meredup
+	public sceneManager scene;
 
 	void Error () {
 		//error
@@ -36,6 +37,8 @@ public class gameOver : MonoBehaviour {
 				heroLight.intensity -= durationLightOff + Time.deltaTime;
 			}
 			else {
+				scene.SceneName ("");
+				scene.WaitTime (0);
 				if(score) score.SaveScore ();
 			}
 		}

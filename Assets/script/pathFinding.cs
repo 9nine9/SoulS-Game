@@ -71,11 +71,11 @@ public class pathFinding : MonoBehaviour {
 				if (enemy) {
 					transform.position = Vector2.MoveTowards (currentPosition, targetPosition, enemy.speed * Time.deltaTime);
 				}
-			}
-			else {
+			} else {
 				path.RemoveAt (current);
 			}
 		}
+		else UpdateTarget ();
 	}
 
 
@@ -104,7 +104,6 @@ public class pathFinding : MonoBehaviour {
 		for(;;){
 			
 			if (open.Contains (B)) { //path ditemukan
-				print("ketemu");
 				path.Add (B);
 
 				while (!path.Contains (A)) {
