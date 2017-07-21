@@ -16,6 +16,7 @@ public class mainMenu : MonoBehaviour {
 	}
 
 	void Start () {
+		Time.timeScale = 1;
 		Error ();
 
 		score = gameObject.GetComponent<scoreManager> ();
@@ -28,10 +29,6 @@ public class mainMenu : MonoBehaviour {
 			}
 		}
 	}
-	
-	void Update () {
-		
-	}
 
 	void StatusHighScore () {
 		blueScore.text = score.highBlueSoul.ToString ();
@@ -39,5 +36,13 @@ public class mainMenu : MonoBehaviour {
 
 		float yellowPercentage = ((float) score.highYellowSoul / yellowScoreMax) * 100;
 		yellowScore.text = yellowPercentage.ToString () + "%";
+	}
+
+	public void Exit (){
+		Application.Quit ();
+	}
+
+	public void Review (string url){
+		Application.OpenURL (url);
 	}
 }

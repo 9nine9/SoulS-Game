@@ -7,7 +7,7 @@ public class enemyController : MonoBehaviour {
 	public float speed;
 	public float[] speedRandom;
 	public bool isSpeedUltimate;
-	public int chanceUltimmate = 25;
+	public int chanceUltimate = 25;
 	public float speedUltimate;
 	public int blueScoreForSpeedUtimate;
 	public float durationSpeed;
@@ -53,8 +53,8 @@ public class enemyController : MonoBehaviour {
 		speed = speedRandom [newSpeed];
 
 		if (isSpeedUltimate) {
-			int chance = Random.Range (0, 100); //25% from 100%
-			if (chance <= chanceUltimmate) {
+			int chance = Random.Range (1, 100); //25% from 100%
+			if (chance <= chanceUltimate) {
 				speed = speedUltimate;
 			}
 		}

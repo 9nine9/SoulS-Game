@@ -6,7 +6,7 @@ public class heroController : MonoBehaviour {
 	public float speed;
 	public bool isMove;
 	float rotate;
-	float swipeDistance = 50f;
+	//float swipeDistance = 50f;
 
 	public int enemyNoticeDistance;
 
@@ -21,6 +21,18 @@ public class heroController : MonoBehaviour {
 	public RectTransform lightBar;
 	public GameObject map;
 	public Text scoreDisplay;
+	public chapterManager chapter;
+
+	public GameObject teleport;
+	public float teleportTime;
+	public float teleportCurrentTime;
+	Image imgTeleport;
+	Button btnTeleport;
+	public bool isTeleport;
+
+	public GameObject explore;
+	Image imgExplore;
+	int maxOpenPath;
 
 	tileMap node;
 	spawnSoul spawn;
@@ -29,6 +41,9 @@ public class heroController : MonoBehaviour {
 	Vector2 world;
 	Vector2 direct;
 	Animator anim;
+
+	public AudioClip enemyClosedSound;
+	AudioSource audioSource;
 
 	Vector2 firstFinger;
 	Vector2 lastFinger;
@@ -39,6 +54,10 @@ public class heroController : MonoBehaviour {
 		if (!lightBar) Debug.LogError ("lightBar is null (heroController)");
 		if (!heroLight) Debug.LogError ("heroLight is null (heroController)");
 		if (!scoreDisplay) Debug.LogError ("scoreDisplay is null (heroController)");
+		if (!teleport) Debug.LogError ("teleport is null (heroController)");
+		if (!enemyClosedSound) Debug.LogError ("enemyClosedSound is null (heroController)");
+		if (!chapter) Debug.LogError ("chapter is null (heroController)");
+		if (!explore) Debug.LogError ("explore is null (heroController)");
 	}
 
 	void Start (){
@@ -51,8 +70,25 @@ public class heroController : MonoBehaviour {
 
 			if (!node) Debug.LogError ("node (map) is null (heroController)");
 			if (!score) Debug.LogError ("score (map) is null (heroController)");
-			if (!spawn) Debug.LogError ("spawn (map) is null (heroController)");
 			if (!status) Debug.LogError ("status (map) is null (heroController)");
+			if (!spawn) Debug.LogError ("spawn (map) is null (heroController)");
+		}
+
+		if (teleport) {
+			isTeleport	= true;
+			imgTeleport = teleport.GetComponent<Image> ();
+			btnTeleport = teleport.GetComponent<Button> ();
+
+			if (!imgTeleport) Debug.LogError ("imgTeleport (teleport) is null (heroController)");
+			else imgTeleport.fillAmount = 0f;
+			if (!btnTeleport) Debug.LogError ("btnTeleport (teleport) is null (heroController)");
+			else btnTeleport.interactable = false;
+		}
+
+		if (explore) {
+			imgExplore = explore.GetComponent<Image> ();
+			if (!imgExplore) Debug.LogError ("imgExplore (explore) is null (heroController)");
+			else imgExplore.fillAmount = 1f;
 		}
 
 		if (scoreDisplay) {
@@ -62,11 +98,15 @@ public class heroController : MonoBehaviour {
 		anim = gameObject.GetComponent<Animator> ();
 		if (!anim) Debug.LogError ("anim (Animator) is null (heroController)");
 
+		audioSource = gameObject.GetComponent<AudioSource> ();
+		if (!audioSource) Debug.LogError ("audioSource (AudioSource) is null (heroController)");
+
 		isMove 		= false;
 		world.x 	= Screen.width / 2;
 		world.y 	= Screen.height / 2;
 		speed 		= speedStart;
 		rotate 		= transform.eulerAngles.z;
+		maxOpenPath = node.nodeOpen.Count;
 
 		if (rotate == 0f) {
 			direct = Vector2.up;
@@ -80,7 +120,6 @@ public class heroController : MonoBehaviour {
 		else if (rotate == 270f) {
 			direct = Vector2.right;
 		}
-
 	}
 
 	void Update () {
@@ -89,6 +128,14 @@ public class heroController : MonoBehaviour {
 		if (node) {
 			ChangeNode ();
 			EnemyNotice ();
+		}
+
+		if (teleport && isTeleport) {
+			TeleportReload ();
+		}
+
+		if (explore && !spawn.isExplorePath) {
+			ExplorePath ();
 		}
 
 		LightStatus ();	
@@ -153,8 +200,8 @@ public class heroController : MonoBehaviour {
 					}
 				}
 			}
-		}
-*/
+		}*/
+
 		RaycastHit2D[] hits = Physics2D.RaycastAll (transform.position, direct, (node.tileSize / 2) + 0.1f);
 		for (int i = 0; i < hits.Length; i++) {
 			RaycastHit2D hit = hits [i];
@@ -162,6 +209,7 @@ public class heroController : MonoBehaviour {
 				isMove = false;
 				break;
 			}
+			else isMove = true;
 		}
 
 		transform.eulerAngles = new Vector3(0, 0, rotate);
@@ -171,7 +219,6 @@ public class heroController : MonoBehaviour {
 		}
 		else {
 			anim.SetBool ("isMove", false);
-			isMove = true;
 		}
 	}
 
@@ -185,14 +232,6 @@ public class heroController : MonoBehaviour {
 			node.hero.x = x;
 			node.hero.y = y;
 		}
-			
-		if (node.nodeOpen.Count > 0) {
-			//jika current node nya hero belum dilalui, hapus node tersebut dari list nodeOpen 
-			if (node.nodeOpen.Contains (node.hero)) {
-				node.nodeOpen.Remove (node.hero);
-			}
-		} 
-		else spawn.isExplorePath = true;
 	}
 
 	//status light hero
@@ -213,7 +252,9 @@ public class heroController : MonoBehaviour {
 	void EnemyNotice () {
 		int distance = Mathf.Abs (node.hero.x - node.enemy.x) + Mathf.Abs (node.hero.y - node.enemy.y);
 		if (distance < enemyNoticeDistance) {
-			print ("enemy Closed");
+			if (!audioSource.isPlaying) {
+				audioSource.PlayOneShot (enemyClosedSound, 1f);
+			}
 		}
 	}
 
@@ -248,8 +289,9 @@ public class heroController : MonoBehaviour {
 			if (node && score) {
 				spawn.Explode (other.gameObject.transform.position, new Color (255, 0, 0)); //buat partikel red
 				score.redSoulScore++;		//update score red soul
+				spawn.currentRedSoul++;
 			}
-	
+				
 			Destroy (other.gameObject);
 			StartCoroutine (spawn.RedEffect (redDuration));
 		}
@@ -263,8 +305,70 @@ public class heroController : MonoBehaviour {
 
 			Destroy (other.gameObject);
 			StartCoroutine (spawn.YellowEffect (yellowDuration, 5));
+
+			if (chapter) {
+				switch (score.yellowSoulScore) {
+				case 1:
+					chapter.Chapter1 ();
+					break;
+				case 2:
+					chapter.Chapter2 ();
+					break;
+				case 3:
+					chapter.Chapter3 ();
+					break;
+				case 4:
+					chapter.Chapter4 ();
+					break;
+				case 5:
+					chapter.Chapter5 ();
+					break;
+				}
+			}
 		}
 
 	}
 
+	public void Teleport () {
+		if (!spawn.isYellowSoul) {
+			btnTeleport.interactable = false;
+			imgTeleport.fillAmount = 0f;
+			isTeleport = true;
+
+			int spawnLocation = Random.Range (0, (node.nodeSpawn.Count - 1));
+			Vector2 newLocation = node.map [node.nodeSpawn [spawnLocation].x, node.nodeSpawn [spawnLocation].y].position;
+			transform.position = newLocation;
+		}
+	}
+
+	void TeleportReload () {
+		if (imgTeleport.fillAmount == 1f) {
+			btnTeleport.interactable = true;
+			isTeleport = false;
+			teleportCurrentTime = 0f;
+		}
+		else {
+			imgTeleport.fillAmount = teleportCurrentTime / teleportTime;
+			teleportCurrentTime += Time.deltaTime;
+		}
+	}
+
+	void ExplorePath () {
+		if (node.nodeOpen.Count > 0) {
+			//jika current node nya hero belum dilalui, hapus node tersebut dari list nodeOpen 
+			if (node.nodeOpen.Contains (node.hero)) {
+				node.nodeOpen.Remove (node.hero);
+				imgExplore.color = Color.white;
+				imgExplore.fillAmount = (float)node.nodeOpen.Count / maxOpenPath;
+			}
+			else imgExplore.color = Color.grey;
+		}
+		else {
+			spawn.isExplorePath = true;
+			if (imgExplore) {
+				Destroy (explore);
+			}
+		}
+
+	}
 }

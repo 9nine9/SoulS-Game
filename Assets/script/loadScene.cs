@@ -21,7 +21,21 @@ public class loadScene : MonoBehaviour {
 	}
 
 	void Start () {
+		Time.timeScale = 1;
 		Error ();
+
+		if (tipsText) {
+			int tips = Random.Range (0, tipsString.Length - 1);
+			tipsText.text = tipsString [tips];
+		}
+
+		if (soulImage) {
+			int tips = Random.Range (0, soul.Length - 1);
+			soulImage.sprite = soul [tips];
+		}
+
+		if(loadingText)
+			loadingText.text = loadString;
 
 		if (PlayerPrefs.HasKey ("sceneName")) {
 			sceneName = PlayerPrefs.GetString ("sceneName");
@@ -30,19 +44,6 @@ public class loadScene : MonoBehaviour {
 			waitTime = PlayerPrefs.GetFloat ("waitTime");
 		}
 
-		if (tipsText) {
-			int tips = Random.Range (0, tipsString.Length - 1);
-			tipsText.text = tipsString [tips];
-		}
-	
-		if (soulImage) {
-			int tips = Random.Range (0, soul.Length - 1);
-			soulImage.sprite = soul [tips];
-		}
-
-		if(loadingText)
-			loadingText.text = loadString;
-		
 		StartCoroutine (Load ());
 	}
 

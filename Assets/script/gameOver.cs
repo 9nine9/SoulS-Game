@@ -2,7 +2,7 @@
 
 public class gameOver : MonoBehaviour {
 	scoreManager score;
-	public bool isGameOver;
+	public bool isGameOver, isGoMenu;
 	public Light heroLight;
 	public Light enemyLight;
 	public float durationLightOff;	//durasi light meredup
@@ -10,6 +10,7 @@ public class gameOver : MonoBehaviour {
 
 	void Error () {
 		//error
+		if (!scene) Debug.LogError ("scene is null (gameOver)");
 		if (!heroLight) Debug.LogError ("heroLight is null (gameOver)");
 		if (!enemyLight) Debug.LogError ("enemyLight is null (gameOver)");
 	}
@@ -21,6 +22,7 @@ public class gameOver : MonoBehaviour {
 		if (!score) Debug.LogError ("score (scoreManager) is null (gameOver)");
 
 		isGameOver 	= false;
+		isGoMenu	= false;
 	}
 	
 	void Update () {
@@ -37,9 +39,13 @@ public class gameOver : MonoBehaviour {
 				heroLight.intensity -= durationLightOff + Time.deltaTime;
 			}
 			else {
-				scene.SceneName ("");
-				scene.WaitTime (0);
-				if(score) score.SaveScore ();
+				if (!isGoMenu) {
+					scene.SceneName ("Menu");
+					scene.WaitTime (3f);
+					isGoMenu = true;
+
+					if (score) score.SaveScore ();
+				}
 			}
 		}
 	}

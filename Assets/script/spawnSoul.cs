@@ -2,6 +2,7 @@
 using System.Collections;
 
 public class spawnSoul : MonoBehaviour {
+	public chapterManager chapter;
 	public GameObject particle;
 
 	public GameObject blueSoul;
@@ -13,9 +14,12 @@ public class spawnSoul : MonoBehaviour {
 
 	public Light heroLight;
 	public heroController hero;
+	public int currentRedSoul;
 	public int[] minRedSoul;
 	public GameObject[] yellowSoul;
 	public bool isExplorePath, isYellowSoul, isRedSoul;
+	public AudioClip[] soulSoundEffect;
+	AudioSource audioSoul;
 
 	tileMap node;
 	scoreManager score;
@@ -27,6 +31,7 @@ public class spawnSoul : MonoBehaviour {
 		if (!enemy) Debug.LogError ("enemy is null (spawnSoul)");
 		if (!heroLight) Debug.LogError ("heroLight is null (spawnSoul)");
 		if (!hero) Debug.LogError ("hero is null (spawnSoul)");
+		if (!chapter) Debug.LogError ("chapter is null (spawnSoul)");
 	}
 
 	void Start () {
@@ -34,6 +39,9 @@ public class spawnSoul : MonoBehaviour {
 
 		node = gameObject.GetComponent<tileMap> ();
 		score = gameObject.GetComponent<scoreManager> ();
+		audioSoul = gameObject.GetComponent<AudioSource> ();
+
+		if (!audioSoul) Debug.LogError ("audioSoul (AudioSource) is null (spawnSoul)");
 		if (!node) Debug.LogError ("node (tileMap) is null (spawnSoul)");
 		if (!score) Debug.LogError ("score (scoreManager) is null (spawnSoul)");
 
@@ -41,6 +49,7 @@ public class spawnSoul : MonoBehaviour {
 			InvokeRepeating("SpawnRedSoul", startRedSpawn, spawnRedTime);
 		}
 			
+
 		isExplorePath 	= false;
 		isRedSoul 		= false;
 		isYellowSoul	= false;
@@ -81,16 +90,19 @@ public class spawnSoul : MonoBehaviour {
 
 	//spawn red soul
 	void SpawnRedSoul () {
-		Vector2 location = enemy.position;
-		GameObject spawnRedSoul = Instantiate (redSoul, location, Quaternion.identity);
-		Destroy (spawnRedSoul, redSoulDuration);
+		if (isExplorePath) {
+			Vector2 location = enemy.position;
+			GameObject spawnRedSoul = Instantiate (redSoul, location, Quaternion.identity);
+			Destroy (spawnRedSoul, redSoulDuration);
+		}
 	}
 
 	void SpawnYellowSoul () {
 		if (score.yellowSoulScore < minRedSoul.Length) {
 			int step = score.yellowSoulScore;
-			if (score.redSoulScore >= minRedSoul [step] && isExplorePath) {
+			if (currentRedSoul >= minRedSoul [step] && isExplorePath) {
 				if (yellowSoul [step]) {
+					currentRedSoul = 0;
 					yellowSoul [step].SetActive (true);
 				}
 				else Debug.LogError ("yellowSoul (" + step + ") is null (spawnSoul)");
@@ -98,8 +110,7 @@ public class spawnSoul : MonoBehaviour {
 		}
 	}
 
-	public IEnumerator YellowEffect(float waitTime, int loop)
-	{
+	public IEnumerator YellowEffect(float waitTime, int loop) {
 		if (heroLight) {
 			isYellowSoul = true;
 			while (loop > 0) {
@@ -111,12 +122,36 @@ public class spawnSoul : MonoBehaviour {
 				yield return new WaitForSeconds (waitTime);
 			}
 			isYellowSoul = false;
+
+			if (chapter) {
+				switch (score.yellowSoulScore) {
+				case 1:
+					chapter.TextEnabled ("Chapter 2\r\nGet a Red Soul");
+					break;
+				case 2:
+					chapter.TextEnabled ("Chapter 3\r\nGet 3 more Red Souls");
+					break;
+				case 3:
+					chapter.TextEnabled ("Chapter 4\r\nGet 5 more Red Souls");
+					break;
+				case 4:
+					chapter.TextEnabled ("Final Chapter\r\nGet 10 more Red Souls");
+					break;
+				case 5:
+					chapter.TextEnabled ("The End");
+					break;
+				}
+
+			}
 		}
 	}
 
-	public IEnumerator RedEffect(float waitTime)
-	{
+	public IEnumerator RedEffect(float waitTime) {
 		if (hero && heroLight) {
+			if (soulSoundEffect [0]) {
+				audioSoul.PlayOneShot (soulSoundEffect [0], 0.5f);
+			}
+
 			heroLight.color = new Color (1, 0.5f, 0.5f);
 
 			isRedSoul = true;

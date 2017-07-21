@@ -1,13 +1,16 @@
 ﻿using UnityEngine;
+using System.Collections;
 using System.Collections.Generic;
 
 public class pathFinding : MonoBehaviour {
 	public tileMap node;
+	spawnSoul spawn;
 	public List<tileMap.Node> open, close, path;
 
 	public float timeStart;
 	public float timeGetPath;
 	float rotate;
+	bool isStart;
 
 	enemyController enemy;
 	Animator anim;
@@ -16,9 +19,14 @@ public class pathFinding : MonoBehaviour {
 		//error
 		if (!node) Debug.LogError ("node is null (pathFinding)");
 	}
-
+		
 	void Start () {
 		Error ();
+
+		if (node) {
+			spawn = node.GetComponent<spawnSoul> ();
+			if (!spawn) Debug.LogError ("spawn (node) is null (pathFinding)");
+		}
 
 		enemy = gameObject.GetComponent<enemyController> ();
 		if (!enemy) Debug.LogError ("enemy (enemyController) is null (pathFinding)");
@@ -27,16 +35,26 @@ public class pathFinding : MonoBehaviour {
 		if (!anim) Debug.LogError ("anim is null (pathFinding)");
 
 		rotate 	= transform.eulerAngles.z;
+		isStart = false;
 
 		path 	= new List<tileMap.Node> ();
 		open 	= new List<tileMap.Node> ();
 		close 	= new List<tileMap.Node> ();
 
+		StartCoroutine (WaitStart ());
 		InvokeRepeating ("UpdateTarget", timeStart, timeGetPath);
 	}
 
 	void Update () {
-		RunPath ();
+		if (spawn) {
+			if (!spawn.isYellowSoul) {
+				RunPath ();
+			} else {
+				if (anim) {
+					anim.SetBool ("isMove", false);
+				}
+			}
+		}
 	}
 
 	void RotateSelf (tileMap.Node A, tileMap.Node B) {
@@ -56,7 +74,7 @@ public class pathFinding : MonoBehaviour {
 		transform.eulerAngles = new Vector3(0, 0, rotate);
 	}
 
-	void RunPath(){
+	void RunPath (){
 		int current = path.Count - 1;
 		if (current >= 0) {
 			RotateSelf (node.enemy, path [current]);
@@ -75,7 +93,8 @@ public class pathFinding : MonoBehaviour {
 				path.RemoveAt (current);
 			}
 		}
-		else UpdateTarget ();
+		else if (isStart)
+			UpdateTarget ();
 	}
 
 
@@ -106,12 +125,10 @@ public class pathFinding : MonoBehaviour {
 			if (open.Contains (B)) { //path ditemukan
 				path.Add (B);
 
-				while (!path.Contains (A)) {
+				while (!Equals(A, current)) {
 					path.Add (current);
 					current = node.map [current.x, current.y].parent;
 				}
-
-				path.Remove (A);
 
 				if (anim) {
 					anim.SetBool ("isMove", true);
@@ -119,7 +136,6 @@ public class pathFinding : MonoBehaviour {
 				break;
 			}
 			else if (open.Count <= 0) { //path tidak ditemukan
-				print("not");
 				if (anim) {
 					anim.SetBool ("isMove", false);
 				}
@@ -249,5 +265,10 @@ public class pathFinding : MonoBehaviour {
 
 	void UpdateTarget () {
 		GetPath (node.enemy, node.hero);
+	}
+
+	IEnumerator WaitStart () {
+		yield return new WaitForSeconds (timeStart);
+		isStart = true;
 	}
 }
