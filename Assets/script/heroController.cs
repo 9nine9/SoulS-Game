@@ -111,20 +111,17 @@ public class heroController : MonoBehaviour {
 		else if (rotate == 90f) direct = Vector2.left;
 		else if (rotate == 180f) direct = Vector2.down;
 		else if (rotate == 270f) direct = Vector2.right;
+
+		InvokeRepeating ("LightStatus", 0, 1f);
+		InvokeRepeating ("TeleportReload", 0, 1f);
 	}
 
 	void Update () {
-		if (node && spawn && teleport && score) {
+		if (node && spawn && score) {
 			Movement ();
 			ChangeNode ();
 			EnemyNotice ();
 
-			if (!spawn.isYellowSoul)
-				LightStatus ();
-
-			if (isTeleport)
-				TeleportReload ();
-		
 			if (score.isExplore == 0)
 				ExplorePath ();
 		}
@@ -188,10 +185,10 @@ public class heroController : MonoBehaviour {
 	void LightStatus () {
 		//jika waktu light habis  maka game over
 		if (lightTime <= 0 && status) status.isGameOver = true;
-		else if (lightBar) {
+		else if (lightBar && !spawn.isYellowSoul) {
 			float timeDown = lightTime / lightTimeMax;
 			lightBar.localScale = new Vector2 (1, timeDown);
-			lightTime -= Time.deltaTime;
+			lightTime--;
 		}
 	}
 
@@ -274,7 +271,7 @@ public class heroController : MonoBehaviour {
 	}
 
 	public void Teleport () {
-		if (!spawn.isYellowSoul && !status.isGameOver) {
+		if (btnTeleport && imgTeleport && !spawn.isYellowSoul && !status.isGameOver) {
 			btnTeleport.interactable = false;
 			imgTeleport.fillAmount = 0f;
 			isTeleport = true;
@@ -286,14 +283,16 @@ public class heroController : MonoBehaviour {
 	}
 
 	void TeleportReload () {
-		if (imgTeleport.fillAmount == 1f) {
-			btnTeleport.interactable = true;
-			isTeleport = false;
-			teleportCurrentTime = 0f;
-		}
-		else {
-			imgTeleport.fillAmount = teleportCurrentTime / teleportTime;
-			teleportCurrentTime += Time.deltaTime;
+		if (btnTeleport && imgTeleport && isTeleport) {
+			if (imgTeleport.fillAmount == 1f) {
+				btnTeleport.interactable = true;
+				isTeleport = false;
+				teleportCurrentTime = 0f;
+			}
+			else {
+				imgTeleport.fillAmount = teleportCurrentTime / teleportTime;
+				teleportCurrentTime++;
+			}
 		}
 	}
 

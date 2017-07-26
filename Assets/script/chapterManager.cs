@@ -20,7 +20,6 @@ public class chapterManager : MonoBehaviour {
 	void Error (){
 		if(!textChapter) Debug.LogError ("textChapter is null (chapterManager)");
 		if(!map) Debug.LogError ("map is null (chapterManager)");
-
 	}
 
 	void Start () {
