@@ -8,7 +8,7 @@ public class pathFinding : MonoBehaviour {
 	public List<tileMap.Node> open, close, path;
 
 	public float timeStart;
-	public float timeGetPath;
+	public float timeRepeat;
 	float rotate;
 	bool isStart;
 
@@ -16,22 +16,24 @@ public class pathFinding : MonoBehaviour {
 	Animator anim;
 
 	void Error () {
-		//error
 		if (!node) Debug.LogError ("node is null (pathFinding)");
 	}
-		
+
 	void Start () {
 		Error ();
 
 		if (node) {
 			spawn = node.GetComponent<spawnSoul> ();
 			if (!spawn) Debug.LogError ("spawn (node) is null (pathFinding)");
+
+			StartCoroutine (WaitStart ());
+			InvokeRepeating ("UpdateTarget", timeStart, timeRepeat);
 		}
 
-		enemy = gameObject.GetComponent<enemyController> ();
-		if (!enemy) Debug.LogError ("enemy (enemyController) is null (pathFinding)");
+		enemy = GetComponent<enemyController> ();
+		anim = GetComponent<Animator> ();
 
-		anim = gameObject.GetComponent<Animator> ();
+		if (!enemy) Debug.LogError ("enemy (enemyController) is null (pathFinding)");
 		if (!anim) Debug.LogError ("anim is null (pathFinding)");
 
 		rotate 	= transform.eulerAngles.z;
@@ -40,36 +42,18 @@ public class pathFinding : MonoBehaviour {
 		path 	= new List<tileMap.Node> ();
 		open 	= new List<tileMap.Node> ();
 		close 	= new List<tileMap.Node> ();
-
-		StartCoroutine (WaitStart ());
-		InvokeRepeating ("UpdateTarget", timeStart, timeGetPath);
 	}
 
 	void Update () {
-		if (spawn) {
-			if (!spawn.isYellowSoul) {
-				RunPath ();
-			} else {
-				if (anim) {
-					anim.SetBool ("isMove", false);
-				}
-			}
-		}
+		if (spawn && !spawn.isYellowSoul) RunPath ();
+		else if (anim) anim.SetBool ("isMove", false);
 	}
 
 	void RotateSelf (tileMap.Node A, tileMap.Node B) {
-		if (B.x > A.x) { //right
-			rotate = 270f;
-		}
-		else if (B.x < A.x) { //left
-			rotate = 90f;
-		}
-		else if (B.y > A.y) { //up
-			rotate = 0f;
-		}
-		else if (B.y < A.y) { //down
-			rotate = 180f;
-		}
+		if (B.x > A.x) rotate = 270f; 		//right
+		else if (B.x < A.x) rotate = 90f; 	//left
+		else if (B.y > A.y) rotate = 0f; 	//up
+		else if (B.y < A.y) rotate = 180f; 	//down
 
 		transform.eulerAngles = new Vector3(0, 0, rotate);
 	}
@@ -86,20 +70,14 @@ public class pathFinding : MonoBehaviour {
 			Vector2 targetPosition = new Vector2 (x, y);
 
 			if (Vector2.Distance (currentPosition, targetPosition) > 0) {
-				if (enemy) {
-					transform.position = Vector2.MoveTowards (currentPosition, targetPosition, enemy.speed * Time.deltaTime);
-				}
-			} else {
-				path.RemoveAt (current);
+				if (enemy) transform.position = Vector2.MoveTowards (currentPosition, targetPosition, enemy.speed * Time.deltaTime);
 			}
+			else path.RemoveAt (current);
 		}
-		else if (isStart)
-			UpdateTarget ();
+		else if (isStart) UpdateTarget ();
 	}
-
-
+		
 	void GetCost (tileMap.Node A, tileMap.Node B, int step) {
-
 		int distance = Mathf.Abs (B.x - A.x) + Mathf.Abs (B.y - A.y);
 		int cost 	 = step + distance;
 
@@ -117,27 +95,19 @@ public class pathFinding : MonoBehaviour {
 		tileMap.Node current, child;
 
 		open.Add (A);
-		current = open [0];
+		current = open [step];
 		GetCost (current, B, step);
 
 		for(;;){
-			
-			if (open.Contains (B)) { //path ditemukan
-				path.Add (B);
-
-				while (!Equals(A, current)) {
-					path.Add (current);
-					current = node.map [current.x, current.y].parent;
-				}
-
-				if (anim) {
-					anim.SetBool ("isMove", true);
-				}
+			if (open.Count <= 0) { //path tidak ditemukan
+				if (anim) anim.SetBool ("isMove", false);
 				break;
 			}
-			else if (open.Count <= 0) { //path tidak ditemukan
-				if (anim) {
-					anim.SetBool ("isMove", false);
+			else if (Equals(current, B)) { //path ditemukan
+				if (anim) anim.SetBool ("isMove", true);
+				while (!Equals(current, A)) {
+					path.Add (current);
+					current = node.map [current.x, current.y].parent;
 				}
 				break;
 			}
@@ -243,8 +213,6 @@ public class pathFinding : MonoBehaviour {
 					}
 				}
 			}
-
-
 		}
 	}
 
@@ -258,7 +226,7 @@ public class pathFinding : MonoBehaviour {
 			node.map [close [i].x, close [i].y].cost = 9999;
 		}
 
-		open 	= new List<tileMap.Node> ();
+		open	= new List<tileMap.Node> ();
 		close 	= new List<tileMap.Node> ();
 		path 	= new List<tileMap.Node> ();
 	}

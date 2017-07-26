@@ -3,13 +3,14 @@
 public class gameOver : MonoBehaviour {
 	scoreManager score;
 	public bool isGameOver, isGoMenu;
+
 	public Light heroLight;
 	public Light enemyLight;
 	public float durationLightOff;	//durasi light meredup
+
 	public sceneManager scene;
 
 	void Error () {
-		//error
 		if (!scene) Debug.LogError ("scene is null (gameOver)");
 		if (!heroLight) Debug.LogError ("heroLight is null (gameOver)");
 		if (!enemyLight) Debug.LogError ("enemyLight is null (gameOver)");
@@ -18,7 +19,7 @@ public class gameOver : MonoBehaviour {
 	void Start () {
 		Error ();
 
-		score = gameObject.GetComponent<scoreManager> ();
+		score = GetComponent<scoreManager> ();
 		if (!score) Debug.LogError ("score (scoreManager) is null (gameOver)");
 
 		isGameOver 	= false;
@@ -27,6 +28,7 @@ public class gameOver : MonoBehaviour {
 	
 	void Update () {
 		if (isGameOver) {
+			Handheld.Vibrate ();
 			Time.timeScale = 0; //pause
 			HeroLightOff ();
 			EnemyLightOff ();
@@ -34,27 +36,19 @@ public class gameOver : MonoBehaviour {
 	}
 
 	void HeroLightOff () {
-		if (heroLight) {
-			if (heroLight.intensity > 0) {
-				heroLight.intensity -= durationLightOff + Time.deltaTime;
-			}
-			else {
-				if (!isGoMenu) {
-					scene.SceneName ("Menu");
-					scene.WaitTime (3f);
-					isGoMenu = true;
+		if (heroLight && heroLight.intensity > 0)
+			heroLight.intensity -= durationLightOff + Time.deltaTime;
+		else if (!isGoMenu) {
+			scene.SceneName ("Menu");
+			scene.WaitTime (3f);
+			isGoMenu = true;
 
-					if (score) score.SaveScore ();
-				}
-			}
+			if (score) score.SaveScore ();
 		}
 	}
 
 	void EnemyLightOff () {
-		if (enemyLight) {
-			if (enemyLight.intensity > 0) {
-				enemyLight.intensity -= durationLightOff + Time.deltaTime;
-			}
-		}
+		if (enemyLight && enemyLight.intensity > 0)
+			enemyLight.intensity -= durationLightOff + Time.deltaTime;
 	}
 }

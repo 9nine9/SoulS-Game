@@ -4,13 +4,14 @@ using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 
 public class loadScene : MonoBehaviour {
-	public string[] tipsString;
 	public Text tipsText;
-	public Sprite[] soul;
+	public string[] tipsString;
 	public Image soulImage;
+	public Sprite[] soul;
 
-	public string loadString = "Loading...";
 	public Text loadingText;
+	public string loadString = "Loading...";
+
 	string sceneName = "Menu"; //default
 	float waitTime = 0f; //default
 
@@ -37,12 +38,10 @@ public class loadScene : MonoBehaviour {
 		if(loadingText)
 			loadingText.text = loadString;
 
-		if (PlayerPrefs.HasKey ("sceneName")) {
+		if (PlayerPrefs.HasKey ("sceneName"))
 			sceneName = PlayerPrefs.GetString ("sceneName");
-		}
-		if (PlayerPrefs.HasKey ("waitTime")) {
+		if (PlayerPrefs.HasKey ("waitTime"))
 			waitTime = PlayerPrefs.GetFloat ("waitTime");
-		}
 
 		StartCoroutine (Load ());
 	}
@@ -55,9 +54,7 @@ public class loadScene : MonoBehaviour {
 	IEnumerator Load () {
 		yield return new WaitForSeconds (waitTime);
 		AsyncOperation async = SceneManager.LoadSceneAsync (sceneName);
-		while (!async.isDone) {
+		while (!async.isDone)
 			yield return null;
-		}
 	}
-
 }

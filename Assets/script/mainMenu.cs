@@ -19,14 +19,12 @@ public class mainMenu : MonoBehaviour {
 		Time.timeScale = 1;
 		Error ();
 
-		score = gameObject.GetComponent<scoreManager> ();
+		score = GetComponent<scoreManager> ();
 		if (!score) Debug.LogError ("score (scoreManager) is null (mainMenu)");
 
 		if (score) {
+			if (reset) score.ResetScore ();
 			StatusHighScore ();
-			if (reset) {
-				score.ResetScore ();
-			}
 		}
 	}
 
@@ -35,7 +33,7 @@ public class mainMenu : MonoBehaviour {
 		redScore.text = score.highRedSoul.ToString ();
 
 		float yellowPercentage = ((float) score.highYellowSoul / yellowScoreMax) * 100;
-		yellowScore.text = yellowPercentage.ToString () + "%";
+		yellowScore.text = yellowPercentage.ToString () + " %";
 	}
 
 	public void Exit (){

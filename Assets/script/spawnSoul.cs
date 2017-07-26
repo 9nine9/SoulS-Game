@@ -8,18 +8,23 @@ public class spawnSoul : MonoBehaviour {
 	public GameObject blueSoul;
 	public int blueSoulMax, blueSoulCount;
 
-	public GameObject redSoul;
 	public Transform enemy;
-	public float startRedSpawn, spawnRedTime, redSoulDuration;
+	public GameObject redSoul;
+	public float startRedSpawn, spawnRedRepeat, redSoulDuration;
 
-	public Light heroLight;
 	public heroController hero;
+	public Light heroLight;
+
 	public int currentRedSoul;
 	public int[] minRedSoul;
 	public GameObject[] yellowSoul;
 	public bool isExplorePath, isYellowSoul, isRedSoul;
 	public AudioClip[] soulSoundEffect;
 	AudioSource audioSoul;
+
+	public Transform cameraMain;
+	float rotateCamera;
+	bool isShake;
 
 	tileMap node;
 	scoreManager score;
@@ -32,36 +37,57 @@ public class spawnSoul : MonoBehaviour {
 		if (!heroLight) Debug.LogError ("heroLight is null (spawnSoul)");
 		if (!hero) Debug.LogError ("hero is null (spawnSoul)");
 		if (!chapter) Debug.LogError ("chapter is null (spawnSoul)");
+		if (!cameraMain) Debug.LogError ("cameraMain is null (spawnSoul)");
 	}
 
 	void Start () {
 		Error ();
 
-		node = gameObject.GetComponent<tileMap> ();
-		score = gameObject.GetComponent<scoreManager> ();
-		audioSoul = gameObject.GetComponent<AudioSource> ();
+		node = GetComponent<tileMap> ();
+		score = GetComponent<scoreManager> ();
+		audioSoul = GetComponent<AudioSource> ();
 
 		if (!audioSoul) Debug.LogError ("audioSoul (AudioSource) is null (spawnSoul)");
 		if (!node) Debug.LogError ("node (tileMap) is null (spawnSoul)");
 		if (!score) Debug.LogError ("score (scoreManager) is null (spawnSoul)");
 
-		if (redSoul) {
-			InvokeRepeating("SpawnRedSoul", startRedSpawn, spawnRedTime);
-		}
+		if (redSoul)
+			InvokeRepeating("SpawnRedSoul", startRedSpawn, spawnRedRepeat);
 			
-
-		isExplorePath 	= false;
+		isExplorePath 	= (PlayerPrefs.GetInt ("isExplore") == 0) ? false : true;
 		isRedSoul 		= false;
 		isYellowSoul	= false;
+		rotateCamera 	= 0f;
+		isShake 	 	= false;
+
 	}
 	
 	void Update () {
-		if (blueSoul && node) {
+		if (blueSoul && node)
 			SpawnBlueSoul ();
-		}
-		if (score) {
+		if (score)
 			SpawnYellowSoul ();
+		if (isShake)
+			ShakeScreen ();
+	}
+
+	void ShakeScreen () {
+		if (cameraMain) {
+			rotateCamera += Time.deltaTime + ((rotateCamera < 0) ?  10 : -10);
+			cameraMain.eulerAngles = new Vector3 (0, 0, rotateCamera);
+			Handheld.Vibrate ();
 		}
+	}
+
+	public void StartShake (float shakeDuration) {
+		isShake = true;
+		StartCoroutine (StopShake (shakeDuration));
+	}
+
+	IEnumerator StopShake (float waitTime) {
+		yield return new WaitForSeconds (waitTime);
+		isShake = false;
+		if (cameraMain) cameraMain.eulerAngles = Vector3.zero;
 	}
 
 	//spawn particle
@@ -83,6 +109,7 @@ public class spawnSoul : MonoBehaviour {
 			int spawnLocation = Random.Range (0, (node.nodeSpawn.Count - 1));
 			Vector2 location  = node.map [node.nodeSpawn [spawnLocation].x, node.nodeSpawn [spawnLocation].y].position;
 			Instantiate (blueSoul, location, Quaternion.identity);
+
 			node.nodeSpawn.RemoveAt (spawnLocation);	//hapus node dari list nodeSpawn
 			blueSoulCount++;
 		}
@@ -115,7 +142,6 @@ public class spawnSoul : MonoBehaviour {
 			isYellowSoul = true;
 			while (loop > 0) {
 				heroLight.enabled = false;
-
 				yield return new WaitForSeconds (waitTime);
 				heroLight.enabled = true;
 				loop--;
@@ -123,37 +149,16 @@ public class spawnSoul : MonoBehaviour {
 			}
 			isYellowSoul = false;
 
-			if (chapter) {
-				switch (score.yellowSoulScore) {
-				case 1:
-					chapter.TextEnabled ("Chapter 2\r\nGet a Red Soul");
-					break;
-				case 2:
-					chapter.TextEnabled ("Chapter 3\r\nGet 3 more Red Souls");
-					break;
-				case 3:
-					chapter.TextEnabled ("Chapter 4\r\nGet 5 more Red Souls");
-					break;
-				case 4:
-					chapter.TextEnabled ("Final Chapter\r\nGet 10 more Red Souls");
-					break;
-				case 5:
-					chapter.TextEnabled ("The End");
-					break;
-				}
-
-			}
+			if (chapter) chapter.TitleChapter ();
 		}
 	}
 
 	public IEnumerator RedEffect(float waitTime) {
 		if (hero && heroLight) {
-			if (soulSoundEffect [0]) {
+			if (soulSoundEffect [0])
 				audioSoul.PlayOneShot (soulSoundEffect [0], 0.5f);
-			}
 
 			heroLight.color = new Color (1, 0.5f, 0.5f);
-
 			isRedSoul = true;
 			hero.speed = hero.speedStart / 2;
 			hero.lightTime /= 2;

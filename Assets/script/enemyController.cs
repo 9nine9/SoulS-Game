@@ -4,6 +4,7 @@ public class enemyController : MonoBehaviour {
 	public GameObject map;
 	tileMap node;
 	scoreManager score;
+
 	public float speed;
 	public float[] speedRandom;
 	public bool isSpeedUltimate;
@@ -13,7 +14,6 @@ public class enemyController : MonoBehaviour {
 	public float durationSpeed;
 
 	void Error () {
-		//error
 		if (!map) Debug.LogError ("map is null (enemyController)");
 	}
 
@@ -21,18 +21,17 @@ public class enemyController : MonoBehaviour {
 		Error ();
 		if (map) {
 			node = map.GetComponent<tileMap> ();
-			if (!node) Debug.LogError ("node (map) is null (enemyController)");
-
 			score = map.GetComponent<scoreManager> ();
-			if (!node) Debug.LogError ("score (map) is null (enemyController)");
+
+			if (!score) Debug.LogError ("score (map) is null (enemyController)");
 			else InvokeRepeating ("ChangeSpeed", durationSpeed, durationSpeed);
+			if (!node) Debug.LogError ("score (map) is null (enemyController)");
+			else ChangeNode ();
 		}
 	}
 
 	void Update () {
-		if (node) {
-			ChangeNode ();
-		}
+		if (node) ChangeNode ();
 	}
 
 	//node yang ditempati enemy
@@ -45,22 +44,15 @@ public class enemyController : MonoBehaviour {
 			node.enemy.x = x;
 			node.enemy.y = y;
 		}
-		//print (node.enemy.x+","+node.enemy.y);
 	}
 
 	void ChangeSpeed () {
 		int newSpeed = Random.Range (0, speedRandom.Length - 1);
 		speed = speedRandom [newSpeed];
 
-		if (isSpeedUltimate) {
-			int chance = Random.Range (1, 100); //25% from 100%
-			if (chance <= chanceUltimate) {
-				speed = speedUltimate;
-			}
-		}
-		else {
-			if (score.blueSoulScore >= blueScoreForSpeedUtimate)
-				isSpeedUltimate = true;
-		}
+		if (isSpeedUltimate && Random.Range (1, 100) <= chanceUltimate)
+			speed = speedUltimate;
+		else if (score.blueSoulScore >= blueScoreForSpeedUtimate)
+			isSpeedUltimate = true;
 	}
 }
