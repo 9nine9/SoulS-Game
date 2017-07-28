@@ -13,7 +13,6 @@ public class pathFinding : MonoBehaviour {
 	bool isStart;
 
 	enemyController enemy;
-	Animator anim;
 
 	void Error () {
 		if (!node) Debug.LogError ("node is null (pathFinding)");
@@ -31,10 +30,7 @@ public class pathFinding : MonoBehaviour {
 		}
 
 		enemy = GetComponent<enemyController> ();
-		anim = GetComponent<Animator> ();
-
 		if (!enemy) Debug.LogError ("enemy (enemyController) is null (pathFinding)");
-		if (!anim) Debug.LogError ("anim is null (pathFinding)");
 
 		rotate 	= transform.eulerAngles.z;
 		isStart = false;
@@ -46,7 +42,7 @@ public class pathFinding : MonoBehaviour {
 
 	void Update () {
 		if (spawn && !spawn.isYellowSoul) RunPath ();
-		else if (anim) anim.SetBool ("isMove", false);
+		else if (enemy && enemy.anim) enemy.anim.SetBool ("isMove", false);
 	}
 
 	void RotateSelf (tileMap.Node A, tileMap.Node B) {
@@ -100,11 +96,11 @@ public class pathFinding : MonoBehaviour {
 
 		for(;;){
 			if (open.Count <= 0) { //path tidak ditemukan
-				if (anim) anim.SetBool ("isMove", false);
+				if (enemy && enemy.anim) enemy.anim.SetBool ("isMove", false);
 				break;
 			}
 			else if (Equals(current, B)) { //path ditemukan
-				if (anim) anim.SetBool ("isMove", true);
+				if (enemy && enemy.anim) enemy.anim.SetBool ("isMove", true);
 				while (!Equals(current, A)) {
 					path.Add (current);
 					current = node.map [current.x, current.y].parent;

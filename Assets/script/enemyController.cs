@@ -8,10 +8,12 @@ public class enemyController : MonoBehaviour {
 	public float speed;
 	public float[] speedRandom;
 	public bool isSpeedUltimate;
-	public int chanceUltimate = 25;
+	public int chanceUltimate;
 	public float speedUltimate;
 	public int blueScoreForSpeedUtimate;
 	public float durationSpeed;
+
+	[HideInInspector] public Animator anim;
 
 	void Error () {
 		if (!map) Debug.LogError ("map is null (enemyController)");
@@ -28,6 +30,9 @@ public class enemyController : MonoBehaviour {
 			if (!node) Debug.LogError ("score (map) is null (enemyController)");
 			else ChangeNode ();
 		}
+
+		anim = GetComponent<Animator> ();
+		if (!anim) Debug.LogError ("anim is null (enemyController)");
 	}
 
 	void Update () {

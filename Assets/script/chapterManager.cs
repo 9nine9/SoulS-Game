@@ -6,6 +6,7 @@ public class chapterManager : MonoBehaviour {
 	public Text textChapter;
 	public string[] textStart;
 	public string[] textFinish;
+	bool isExplore = false;
 
 	public AudioClip[] audioChapter;
 	AudioSource audioSource;
@@ -18,8 +19,8 @@ public class chapterManager : MonoBehaviour {
 	public bool[] isSpawnYellowSoul;
 
 	void Error (){
-		if(!textChapter) Debug.LogError ("textChapter is null (chapterManager)");
-		if(!map) Debug.LogError ("map is null (chapterManager)");
+		if (!textChapter) Debug.LogError ("textChapter is null (chapterManager)");
+		if (!map) Debug.LogError ("map is null (chapterManager)");
 	}
 
 	void Start () {
@@ -29,24 +30,29 @@ public class chapterManager : MonoBehaviour {
 			soul = map.GetComponent<spawnSoul> ();
 			score = map.GetComponent<scoreManager> ();
 
-			if(!soul) Debug.LogError ("soul (map) is null (chapterManager)");
-			if(!score) Debug.LogError ("score (map) is null (chapterManager)");
+			if (!soul) Debug.LogError ("soul (map) is null (chapterManager)");
+			if (!score) Debug.LogError ("score (map) is null (chapterManager)");
+			else {
+				if (score.isExplore == 0) TextEnabled (textStart [0]);
+				else isExplore = true;
+			}
 		}
 
 		audioSource = GetComponent<AudioSource> ();
-		if(!audioSource) Debug.LogError ("audioSource (AudioSource) is null (chapterManager)");
+		if (!audioSource) Debug.LogError ("audioSource (AudioSource) is null (chapterManager)");
 
 		for (int i = 0; i < isSpawnYellowSoul.Length; i++)
 			isSpawnYellowSoul [i] = false;
-
-		TextEnabled (textStart [0]);
 	}
 
 	void Update () {
 		if (soul) {
 			if (soul.isExplorePath && !isSpawnYellowSoul [0]) {
 				if (soul.yellowSoul [0].activeInHierarchy) {
-					TextEnabled (textFinish [0]);
+					if (isExplore)
+						TextEnabled ("Chapter 1 have been done\r\n" + textFinish [0]);
+					else
+						TextEnabled (textFinish [0]);
 					isSpawnYellowSoul [0] = true;
 				}
 			}
@@ -95,6 +101,7 @@ public class chapterManager : MonoBehaviour {
 			yield return new WaitForSeconds (waitTime);
 			loop--;
 			yield return new WaitForSeconds (waitTime);
+			Handheld.Vibrate ();
 			obj.transform.position = position [loop];
 		}
 	}
@@ -121,7 +128,7 @@ public class chapterManager : MonoBehaviour {
 
 	public void Chapter1 () {
 		if (audioSource && audioChapter [0])
-			audioSource.PlayOneShot (audioChapter [0], 0.2f);
+			audioSource.PlayOneShot (audioChapter [0], 0.1f);
 
 		GameObject obj = objectChapter [0];
 		if (obj) {
@@ -132,7 +139,7 @@ public class chapterManager : MonoBehaviour {
 
 	public void Chapter2 () {
 		if (audioSource && audioChapter [1])
-			audioSource.PlayOneShot (audioChapter [1], 0.5f);
+			audioSource.PlayOneShot (audioChapter [1], 0.3f);
 
 		GameObject obj = objectChapter [1];
 		if (obj) {
@@ -161,7 +168,7 @@ public class chapterManager : MonoBehaviour {
 
 	public void Chapter4 () {
 		if (audioSource && audioChapter [3])
-			audioSource.PlayOneShot (audioChapter [3], 0.5f);
+			audioSource.PlayOneShot (audioChapter [3], 0.7f);
 
 		GameObject obj = objectChapter [3];
 		if (obj) {
@@ -172,7 +179,7 @@ public class chapterManager : MonoBehaviour {
 
 	public void Chapter5 () {
 		if (audioSource && audioChapter [4])
-			audioSource.PlayOneShot (audioChapter [4], 0.7f);
+			audioSource.PlayOneShot (audioChapter [4], 0.9f);
 
 		GameObject obj = objectChapter [4];
 		if (obj) {

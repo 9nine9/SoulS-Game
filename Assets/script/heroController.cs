@@ -6,7 +6,7 @@ public class heroController : MonoBehaviour {
 	public float speed;
 	public bool isMove;
 	float rotate;
-
+	
 	public float redDuration;		//durasi terkena red soul
 	public float yellowDuration;	//durasi terkena yellow soul
 
@@ -112,7 +112,6 @@ public class heroController : MonoBehaviour {
 		else if (rotate == 180f) direct = Vector2.down;
 		else if (rotate == 270f) direct = Vector2.right;
 
-		InvokeRepeating ("LightStatus", 0, 1f);
 		InvokeRepeating ("TeleportReload", 0, 1f);
 	}
 
@@ -120,6 +119,7 @@ public class heroController : MonoBehaviour {
 		if (node && spawn && score) {
 			Movement ();
 			ChangeNode ();
+			LightStatus ();
 			EnemyNotice ();
 
 			if (score.isExplore == 0)
@@ -188,7 +188,7 @@ public class heroController : MonoBehaviour {
 		else if (lightBar && !spawn.isYellowSoul) {
 			float timeDown = lightTime / lightTimeMax;
 			lightBar.localScale = new Vector2 (1, timeDown);
-			lightTime--;
+			lightTime -= Time.deltaTime;
 		}
 	}
 
@@ -202,8 +202,10 @@ public class heroController : MonoBehaviour {
 	void OnCollisionEnter2D (Collision2D other) {
 		//jika menabrak musuh
 		if (other.gameObject.tag == "Enemy") {
+			Handheld.Vibrate ();
+			status.isGameOver = true;
 			lightTime  = 0;
-			if (lightBar) lightBar.localScale = new Vector2(1, 0);
+			if (lightBar) lightBar.localScale = new Vector2 (1, 0);
 		}
 
 		//jika menabrak blue soul
@@ -244,7 +246,6 @@ public class heroController : MonoBehaviour {
 				spawn.Explode (other.gameObject.transform.position, new Color (255, 255, 0)); //buat partikel yellow
 				score.yellowSoulScore++;		//update score yellow soul
 
-				Handheld.Vibrate ();
 				Destroy (other.gameObject);
 				StartCoroutine (spawn.YellowEffect (yellowDuration, 5));
 

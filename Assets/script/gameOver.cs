@@ -25,11 +25,10 @@ public class gameOver : MonoBehaviour {
 		isGameOver 	= false;
 		isGoMenu	= false;
 	}
-	
+
 	void Update () {
 		if (isGameOver) {
-			Handheld.Vibrate ();
-			Time.timeScale = 0; //pause
+			Time.timeScale = 0;
 			HeroLightOff ();
 			EnemyLightOff ();
 		}
